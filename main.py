@@ -10,8 +10,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage  # Импорт х�
 import asyncio  # Импорт библиотеки asyncio для асинхронного программирования
 from aiogram.dispatcher.filters.state import State, StatesGroup  # Импорт классов для работы с состояниями
 from aiogram.dispatcher import FSMContext  # Импорт контекста состояний
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, callback_query
 
 API_TOKEN = '8072047087:AAGDSoPN8p0j_fZajx3hm8QMQJ1zGsIsuic'  # Токен Вашего бота
 
@@ -23,6 +22,11 @@ dp = Dispatcher(bot, storage=storage)  # Создание диспетчера �
 # Определение состояний
 class Form(StatesGroup):  # Класс для определения состояний
     main_menu = State()  # Состояние для основного меню
+    height = State()
+    weight = State()
+    gender = State()
+    age = State()
+    body_type = State()
 
 @dp.message_handler(commands=['start'])  # Обработчик команды /start
 async def cmd_start(message: types.Message):  # Асинхронная функция для обработки команды
@@ -56,71 +60,234 @@ def recipes_keyboard():  # Функция для создания клавиат
 
 # 3) Расчет калорий ____________________________________________________________________________________
 
+from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+
 # Определение состояний пользователя
 class UserState(StatesGroup):
-    age = State()      # Состояние для ввода возраста
-    growth = State()   # Состояние для ввода роста
-    weight = State()   # Состояние для ввода веса
+    gender = State()  # Состояние для выбора пола
+    age = State()     # Состояние для ввода возраста
+    growth = State()  # Состояние для ввода роста
+    weight = State()  # Состояние для ввода веса
+    activity_level = State()  # Состояние для выбора уровня активности
 
+# with open('Formula_San_Zeora.txt', 'r', encoding='utf-8') as file: ### - надо или нет   ???
+#     text_about_calories = file.read()
 
-with open('Formula_San_Zeora.txt', 'r', encoding='utf-8') as file:
-    text_about_calories = file.read()
 
 # Обработка выбора Расчета калорий
 @dp.message_handler(lambda message: message.text == "Здоровье")  # Обработчик для кнопки "Здоровье"
-async def recipes_menu(message: types.Message):  # Асинхронная функция для обработки выбора
-    await message.answer("Рассчитать норму калорий:", reply_markup=recipes_keyboard())
+async def health_menu(message: types.Message):  # Асинхронная функция для обработки выбора
 
-kb = InlineKeyboardMarkup()
-button = InlineKeyboardButton(text='Рассчитать норму калорий', callback_data='calories')
-button2 = InlineKeyboardButton(text='Формулы расчёта', callback_data='formulas')
-kb.add(button, button2)
+    kb = InlineKeyboardMarkup()  # Создание инлайн-клавиатуры
+    button = InlineKeyboardButton(text='Рассчитать норму калорий', callback_data='calories')
+    button2 = InlineKeyboardButton(text='Формулы расчёта калорий', callback_data='formulas')
+    button3 = InlineKeyboardButton(text='Рассчитать норму своего веса', callback_data='weight_in_kg')
+    button4 = InlineKeyboardButton(text='Как рассчитывается вес', callback_data='weight_is_calculated')
+    kb.add(button, button2)  # Добавление кнопок в инлайн-клавиатуру
+    kb.add(button3, button4)  # Добавление кнопок в инлайн-клавиатуру
 
-@dp.message_handler(text='Рассчитать')
-async def main_menu(message: types.Message):
-    await message.answer('Выберите опцию:', reply_markup=kb)
+    await message.answer("Выберите опцию:", reply_markup=kb)  # Отправка сообщения с инлайн-клавиатурой
 
-@dp.callback_query_handler(text='formulas')  # Обработчик для кнопки "Формулы расчёта"
-async def get_formulas(call):
+# @dp.message_handler(text='Рассчитать')
+# async def main_menu(message: types.Message):
+#     await message.answer('Выберите опцию:', reply_markup=kb)
+
+@dp.callback_query_handler(text='formulas')
+async def get_formulas(call: types.CallbackQuery):
+    # Чтение содержимого файла
+    with open('Formula_San_Zeora.txt', 'r', encoding='utf-8') as file:
+        text_about_calories = file.read()
+
+    # Отправка содержимого файла пользователю
     await call.message.answer(text_about_calories)
     await call.answer()
 
 @dp.callback_query_handler(text='calories')
-async def set_age(call):
-    await call.message.answer("Введите свой возраст: ")
+async def set_gender(call):
+    await call.message.answer("Выберите Ваш пол: \n1. Мужчина\n2. Женщина")
+    await UserState.gender.set()
+
+@dp.message_handler(state=UserState.gender)
+async def set_age(message: types.Message, state: FSMContext):
+    gender = message.text.strip()
+    if gender not in ["1", "2"]:
+        await message.answer("Пожалуйста, выберите 1 для Мужчины или 2 для Женщины.")
+        return
+    await state.update_data(gender=gender)
+    await message.answer("Введите свой возраст (от 13 до 80 лет): ")
     await UserState.age.set()
+
 
 @dp.message_handler(state=UserState.age)
 async def set_growth(message: types.Message, state: FSMContext):
-    await state.update_data(age=message.text)
-    await message.answer("Введите свой рост: ")
+    age = message.text.strip()
+    if not age.isdigit() or not (13 <= int(age) <= 80):
+        await message.answer("Пожалуйста, введите корректный возраст от 13 до 80 лет.")
+        return
+    await state.update_data(age=age)
+    await message.answer("Введите свой рост (в см): ")
     await UserState.growth.set()
+
 
 @dp.message_handler(state=UserState.growth)
 async def set_weight(message: types.Message, state: FSMContext):
     await state.update_data(growth=message.text)
-    await message.answer("Введите свой вес: ")
+    await message.answer("Введите свой вес (в кг): ")
     await UserState.weight.set()
 
+
 @dp.message_handler(state=UserState.weight)
-async def send_calories(message: types.Message, state: FSMContext):
+async def set_activity_level(message: types.Message, state: FSMContext):
     await state.update_data(weight=message.text)
+    await message.answer(
+        "Выберите уровень активности:\n1. Минимальная активность (1.2)\n2. Слабый уровень активности (1.375)\n3. Умеренный уровень активности (1.55)\n4. Тяжелая активность (1.7)\n5. Экстремальный уровень (1.9)")
+    await UserState.activity_level.set()
+
+@dp.message_handler(state=UserState.activity_level)
+async def send_calories(message: types.Message, state: FSMContext):
+    activity_level = message.text.strip()
+    if activity_level not in ["1", "2", "3", "4", "5"]:
+        await message.answer("Пожалуйста, выберите уровень активности от 1 до 5.")
+        return
+
+    await state.update_data(activity_level=activity_level)
     data = await state.get_data()
+
     age = int(data['age'])
     growth = float(data['growth'])
     weight = float(data['weight'])
-    calories = 10 * weight + 6.25 * growth - 5 * age
+    gender = data['gender']
 
-    await message.answer(f"Ваш приблизительный суточный расход калорий: {calories}")
+    # Определяем коэффициент активности
+    activity_coefficients = {
+        "1": 1.2,
+        "2": 1.375,
+        "3": 1.55,
+        "4": 1.7,
+        "5": 1.9
+    }
+    A = activity_coefficients[activity_level]
+
+    # Расчет калорий по формуле Миффлина-Сан Жеора
+    if gender == "1":  # Мужчина
+        calories = (10 * weight + 6.25 * growth - 5 * age + 5) * A
+    else:  # Женщина
+        calories = (10 * weight + 6.25 * growth - 5 * age - 161) * A
+
+    await message.answer(f"Ваш приблизительный суточный расход калорий: {calories:.2f} ккал")
 
     # Удаляем данные о пользователе после расчета
     await state.finish()  # Завершаем состояние
 #____________________________________________________________________________________________________________________
+# 3a)________________________________________________________________________________________________________________
 
+@dp.callback_query_handler(lambda callback_query: callback_query.data == 'weight_in_kg')
+async def calculate_weight_handler(callback_query: types.CallbackQuery):
+    await callback_query.answer()  # Подтверждение нажатия кнопки
+    await callback_query.message.answer("Введите рост в см:")
+    await Form.height.set()  # Установка состояния
+
+@dp.message_handler(state=Form.height)
+async def process_height(message: types.Message, state: FSMContext):
+    height_cm = float(message.text)
+    await state.update_data(height=height_cm)  # Сохранение роста в состоянии
+    await Form.next()  # Переход к следующему состоянию
+    await message.answer("Введите вес в кг:")
+
+@dp.message_handler(state=Form.weight)
+async def process_weight(message: types.Message, state: FSMContext):
+    weight_kg = float(message.text)
+    await state.update_data(weight=weight_kg)  # Сохранение веса в состоянии
+    await Form.next()  # Переход к следующему состоянию
+    await message.answer("Введите пол (мужчина/женщина):")
+
+@dp.message_handler(state=Form.gender)
+async def process_gender(message: types.Message, state: FSMContext):
+    gender = message.text
+    await state.update_data(gender=gender)  # Сохранение пола в состоянии
+    await Form.next()  # Переход к следующему состоянию
+    await message.answer("Введите возраст:")
+
+@dp.message_handler(state=Form.age)
+async def process_age(message: types.Message, state: FSMContext):
+    age = int(message.text)
+    await state.update_data(age=age)  # Сохранение возраста в состоянии
+    await Form.next()  # Переход к следующему состоянию
+    await message.answer("Введите тип телосложения (астенический/нормостенический/гиперстенический):")
+
+@dp.message_handler(state=Form.body_type)
+async def process_body_type(message: types.Message, state: FSMContext):
+    body_type = message.text
+    await state.update_data(body_type=body_type)  # Сохранение типа телосложения в состоянии
+
+    # Получение всех данных из состояния
+    data = await state.get_data()
+    height_cm = data['height']
+    weight_kg = data['weight']
+    gender = data['gender']
+    age = data['age']
+    body_type = data['body_type']
+
+    def calculate_weight(height_cm, gender, age, body_type):
+        # Расчет нормального веса по формуле Брока
+        if gender.lower() == 'male':
+            normal_weight = height_cm - 110
+        else:
+            normal_weight = height_cm - 100
+
+        # Корректировка по возрасту
+        if 20 <= age <= 30:
+            normal_weight *= 0.89  # Уменьшение на 11%
+        elif age > 50:
+            normal_weight *= 1.06  # Увеличение на 6%
+
+        # Корректировка по типу телосложения
+        if body_type.lower() == 'asthenic':
+            normal_weight *= 0.90  # Уменьшение на 10%
+        elif body_type.lower() == 'hypersthenic':
+            normal_weight *= 1.10  # Увеличение на 10%
+
+        return normal_weight
+
+    def calculate_bmi(weight_kg, height_m):
+        bmi = weight_kg / (height_m ** 2)
+        return bmi
+
+    def classify_obesity(bmi):
+        if bmi < 15:
+            return "Острый недостаток веса"
+        elif 15 <= bmi < 20:
+            return "Недостаточная масса тела"
+        elif 20 <= bmi < 25:
+            return "Нормальный вес"
+        elif 25 <= bmi < 30:
+            return "Избыточная масса тела"
+        elif 30 <= bmi < 35:
+            return "Ожирение 1 степени"
+        elif 35 <= bmi < 40:
+            return "Ожирение 2 степени"
+        else:
+            return "Ожирение 3 степени"
+    # Выполнение расчетов
+    normal_weight = calculate_weight(height_cm, gender, age, body_type)
+    height_m = height_cm / 100
+    bmi = calculate_bmi(weight_kg, height_m)
+    obesity_classification = classify_obesity(bmi)
+
+    excess_weight = weight_kg - normal_weight if weight_kg > normal_weight else 0
+
+    await message.answer(f"Нормальный вес: {normal_weight:.2f} кг")
+    await message.answer(f"Индекс массы тела (ИМТ): {bmi:.2f}")
+    await message.answer(f"Классификация ожирения: {obesity_classification}")
+    await message.answer(f"Избыточный вес до нормы: {excess_weight:.2f} кг")
+
+    await state.finish()  # Завершение состояния
+
+#____________________________________________________________________________________________________________________
 
 # Обработка выбора категории рецептов
 @dp.message_handler(lambda message: message.text in ["Завтраки", "Ужины", "Десерты", "Вегетарианские"])  # Обработчик для категорий рецептов
@@ -147,13 +314,6 @@ async def landscapes_menu(message: types.Message):  # Асинхронная ф�
                          ))                                                                       # Добавление кнопки с ссылкой
 
 #______________________________________________________________________________________________________________________
-
-
-
-
-
-
-
 
 
 @dp.message_handler(lambda message: message.text == "Животные")             # Обработчик для кнопки "Животные"
