@@ -6,15 +6,33 @@
 ### - ИМЯ БОТА - Ava                                          временный T_raining_Bot
 ### - ИМЯ БОТА для внутренней работы и настройки - Ava_01_25_bot  временный T_raining_Bot
 
-
-from aiogram import Bot, Dispatcher, executor, types  # Импорт необходимых классов из библиотеки aiogram
-from aiogram.contrib.fsm_storage.memory import MemoryStorage  # Импорт хранилища для состояний
-import asyncio  # Импорт библиотеки asyncio для асинхронного программирования
+import os
+from aiogram import Bot, Dispatcher, executor, types             # Импорт необходимых классов из библиотеки aiogram
+from aiogram.contrib.fsm_storage.memory import MemoryStorage     # Импорт хранилища для состояний
+import asyncio                                                   # Импорт библиотеки asyncio для асинхронного программирования
 from aiogram.dispatcher.filters.state import State, StatesGroup  # Импорт классов для работы с состояниями
-from aiogram.dispatcher import FSMContext  # Импорт контекста состояний
+from aiogram.dispatcher import FSMContext                        # Импорт контекста состояний
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, callback_query
+from datetime import datetime                                    # Импорт модуля datetime для работы с датой и временем
+
 
 API_TOKEN = '8072047087:AAGDSoPN8p0j_fZajx3hm8QMQJ1zGsIsuic'  # Токен Вашего бота
+
+#____ПРОВЕРКА НА НАЛИЧИЕ ДРУГОГО ЭКЗАМПЛЯРА БОТА - ???_________________________________________________________________
+
+# # Путь к файлу блокировки
+# LOCK_FILE = 'bot.lock'
+#
+# # Проверка наличия другого экземпляра бота
+# if os.path.exists(LOCK_FILE):
+#     print("Бот уже запущен. Завершите предыдущий экземпляр перед запуском нового.")
+#     exit(1)
+#
+# # Создание файла блокировки
+# with open(LOCK_FILE, 'w') as f:
+#     f.write("locked")
+
+#______________________________________________________________________________________________________________________
 
 # Инициализация бота и диспетчера
 bot = Bot(token=API_TOKEN)  # Создание экземпляра бота
@@ -429,15 +447,42 @@ async def gazebo_menu(message: types.Message):                                  
     await message.answer("Добро пожаловать в беседку! Здесь Вы можете задавать вопросы и участвовать в опросах.",
                          )  # Ответ с информацией о беседке и кнопкой "Назад в меню"
 
-# Запуск бота
-if __name__ == '__main__':  # Проверка, что скрипт запускается напрямую
 
-    print("Запуск бота...")  # Логирование
-    try:
-        executor.start_polling(dp, skip_updates=True)  # Запуск бота и обработка обновлений
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")                                            # Логирование ошибок
-    finally:
-        print("Бот завершил работу.")  # Логирование завершения работы бота
 
-    executor.start_polling(dp, skip_updates=True)  # Запуск бота и обработка обновлений
+# # Запуск бота
+# if __name__ == '__main__':  # Проверка, что скрипт запускается напрямую
+#     start_time = datetime.now()                                                                         # Получение текущего времени
+#     print(f"Запуск бота в {start_time.strftime('%H:%M:%S')} дата {start_time.strftime('%d.%m.%Y')}г.")  # Логирование с датой и временем
+#     try:
+#         executor.start_polling(dp, skip_updates=True)                                                   # Запуск бота и обработка обновлений
+#     except Exception as e:
+#         print(f"Произошла ошибка: {e}")                                                                 # Логирование ошибок
+#     finally:
+#         end_time = datetime.now()                                                                       # Получение времени завершения
+#         print(f"Бот завершил работу в {end_time.strftime('%H:%M:%S')} дата {end_time.strftime('%d.%m.%Y')}г.")  # Логирование завершения работы бота
+#
+#     executor.start_polling(dp, skip_updates=True)                                                       # Запуск бота и обработка обновлений
+
+is_running = False
+
+if __name__ == '__main__':                             # Проверка, что скрипт запускается напрямую, а не импортируется как модуль
+    start_time = datetime.now()                                     # Получение текущего времени для логирования
+                                                       # Вывод в консоль времени запуска бота с форматированием
+    print(f"Запуск бота в {start_time.strftime('%H:%M:%S')} дата {start_time.strftime('%d.%m.%Y')} г.")
+
+    if not is_running:                                 # Проверка, запущен ли бот (флаг is_running должен быть False)
+        is_running = True                              # Установка флага, что бот запущен, чтобы предотвратить повторный запуск
+        try:
+                                                       # Запуск бота с использованием метода start_polling, который начинает опрос обновлений
+            executor.start_polling(dp, skip_updates=True)
+        except Exception as e:                         # Обработка любых исключений, которые могут возникнуть во время работы бота
+                                                                    # Логирование ошибки в консоль, если что-то пошло не так
+            print(f"Произошла ошибка: {e}")
+        finally:
+            end_time = datetime.now()                  # Получение времени завершения работы бота
+            # Вывод в консоль времени завершения работы бота с форматированием
+            print(f"Бот завершил работу в {end_time.strftime('%H:%M:%S')} дата {end_time.strftime('%d.%m.%Y')} г.")
+            is_running = False                         # Сброс флага is_running при завершении работы бота
+    else:
+        # Если бот уже запущен, выводим сообщение о том, что нужно завершить предыдущий экземпляр
+        print("Бот уже запущен. Завершите предыдущий экземпляр перед запуском нового.")
