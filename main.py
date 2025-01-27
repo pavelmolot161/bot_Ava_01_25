@@ -1,7 +1,9 @@
-### - 12.01.25
+### - 12.01.25 работа 10 часов
+### - 26.01.25 работа 6 часов
+
 ### - Бот будет работать на версии 3.9 !!!!!!!!!!!!!!!!!!!!!!!
 ### - Use this token to access the HTTP API:
-### - ИМЯ БОТА - bot_Ava                                          временный T_raining_Bot
+### - ИМЯ БОТА - Ava                                          временный T_raining_Bot
 ### - ИМЯ БОТА для внутренней работы и настройки - Ava_01_25_bot  временный T_raining_Bot
 
 
@@ -85,8 +87,8 @@ async def health_menu(message: types.Message):  # Асинхронная фун�
     kb = InlineKeyboardMarkup()  # Создание инлайн-клавиатуры
     button = InlineKeyboardButton(text='Рассчитать норму калорий', callback_data='calories')
     button2 = InlineKeyboardButton(text='Формулы расчёта калорий', callback_data='formulas')
-    button3 = InlineKeyboardButton(text='Рассчитать норму своего веса', callback_data='weight_in_kg')
-    button4 = InlineKeyboardButton(text='Как рассчитывается вес', callback_data='weight_is_calculated')
+    button3 = InlineKeyboardButton(text='Рассчитать норму веса', callback_data='weight_in_kg')
+    button4 = InlineKeyboardButton(text='Информация о весе', callback_data='weight_is_calculated')
     kb.add(button, button2)  # Добавление кнопок в инлайн-клавиатуру
     kb.add(button3, button4)  # Добавление кнопок в инлайн-клавиатуру
 
@@ -185,6 +187,26 @@ async def send_calories(message: types.Message, state: FSMContext):
 #____________________________________________________________________________________________________________________
 # 3a)________________________________________________________________________________________________________________
 
+@dp.callback_query_handler(text='weight_is_calculated')
+async def get_weight_calc(call: types.CallbackQuery):
+    print("Обработчик weight_is_calculated вызван")                            # Логирование
+    # Чтение содержимого файла
+    with open('Weight_calculation.txt', 'r', encoding='utf-8') as file:
+        text_weight_calculation = file.read()
+
+        # Функция для разбивки текста на части для телеграма
+        def split_text(text, max_length=4095):
+            return [text[i:i + max_length] for i in range(0, len(text), max_length)]
+
+        # Разделение текста на части
+        text_parts = split_text(text_weight_calculation)
+
+        # Отправка каждой части текста
+        for part in text_parts:
+            await call.message.answer(part)
+
+        await call.answer()
+
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'weight_in_kg')
 async def calculate_weight_handler(callback_query: types.CallbackQuery):
     await callback_query.answer()  # Подтверждение нажатия кнопки
@@ -203,25 +225,65 @@ async def process_weight(message: types.Message, state: FSMContext):
     weight_kg = float(message.text)
     await state.update_data(weight=weight_kg)  # Сохранение веса в состоянии
     await Form.next()  # Переход к следующему состоянию
-    await message.answer("Введите пол (мужчина/женщина):")
+    await message.answer("Введите пол (1 - мужчина, 2 - женщина):")
 
 @dp.message_handler(state=Form.gender)
 async def process_gender(message: types.Message, state: FSMContext):
-    gender = message.text
+    gender_input = int(message.text)
+    if gender_input == 1:
+        gender = 'male'
+    elif gender_input == 2:
+        gender = 'female'
+    else:
+        await message.answer("Неверный ввод. Пожалуйста, введите 1 для мужчины или 2 для женщины.")
+        return
+
     await state.update_data(gender=gender)  # Сохранение пола в состоянии
     await Form.next()  # Переход к следующему состоянию
     await message.answer("Введите возраст:")
+
+
+# @dp.message_handler(state=Form.gender)
+# async def process_gender(message: types.Message, state: FSMContext):
+#     gender = message.text
+#     await state.update_data(gender=gender)  # Сохранение пола в состоянии
+#     await Form.next()  # Переход к следующему состоянию
+#     await message.answer("Введите возраст:")
 
 @dp.message_handler(state=Form.age)
 async def process_age(message: types.Message, state: FSMContext):
     age = int(message.text)
     await state.update_data(age=age)  # Сохранение возраста в состоянии
     await Form.next()  # Переход к следующему состоянию
-    await message.answer("Введите тип телосложения (астенический/нормостенический/гиперстенический):")
+
+    # Отправка изображения и выбор типа телосложения
+    await message.answer_photo(photo=open('type_of_physique.png', 'rb'),
+                    caption="Введите тип телосложения:\n1 - Астенический\n2 - Нормостенический\n3 - Гиперстенический:")
+
+
+
+# @dp.message_handler(state=Form.age)
+# async def process_age(message: types.Message, state: FSMContext):
+#     age = int(message.text)
+#     await state.update_data(age=age)  # Сохранение возраста в состоянии
+#     await Form.next()  # Переход к следующему состоянию
+#     await message.answer("Введите тип телосложения (астенический/нормостенический/гиперстенический):")
 
 @dp.message_handler(state=Form.body_type)
 async def process_body_type(message: types.Message, state: FSMContext):
-    body_type = message.text
+    body_type_input = int(message.text)
+    body_type = ""
+
+    if body_type_input == 1:
+        body_type = 'asthenic'
+    elif body_type_input == 2:
+        body_type = 'normostenic'
+    elif body_type_input == 3:
+        body_type = 'hypersthenic'
+    else:
+        await message.answer("Неверный ввод. Пожалуйста, введите 1, 2 или 3.")
+        return
+
     await state.update_data(body_type=body_type)  # Сохранение типа телосложения в состоянии
 
     # Получение всех данных из состояния
