@@ -407,6 +407,7 @@ async def subscription_menu(message: types.Message):                            
 
 @dp.message_handler(lambda message: message.text == "Ссылки и ресурсы")           # Обработчик для кнопки "Ссылки и ресурсы"
 async def links_resources_menu(message: types.Message):                           # Асинхронная функция для обработки выбора
+    print("Обработчик 'Ссылки и ресурсы' вызван")                                 # Логирование
     keyboard = InlineKeyboardMarkup()  # Создание инлайн-клавиатуры
     keyboard.add(InlineKeyboardButton("Перейти на YouTube канал 'Все обо Всем'",
                                        url="https://youtube.com/@elena_ivanovaaa?si=jye0JlS9ozmRTrqF"))  # Кнопка с ссылкой
@@ -424,9 +425,19 @@ async def links_resources_menu(message: types.Message):                         
 
 @dp.message_handler(lambda message: message.text == "Беседка")                    # Обработчик для кнопки "Беседка"
 async def gazebo_menu(message: types.Message):                                    # Асинхронная функция для обработки выбора
+    print("Обработчик 'Беседка' вызван")                                          # Логирование
     await message.answer("Добро пожаловать в беседку! Здесь Вы можете задавать вопросы и участвовать в опросах.",
                          )  # Ответ с информацией о беседке и кнопкой "Назад в меню"
 
 # Запуск бота
 if __name__ == '__main__':  # Проверка, что скрипт запускается напрямую
+
+    print("Запуск бота...")  # Логирование
+    try:
+        executor.start_polling(dp, skip_updates=True)  # Запуск бота и обработка обновлений
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")                                            # Логирование ошибок
+    finally:
+        print("Бот завершил работу.")  # Логирование завершения работы бота
+
     executor.start_polling(dp, skip_updates=True)  # Запуск бота и обработка обновлений
